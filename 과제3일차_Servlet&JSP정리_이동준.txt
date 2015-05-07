@@ -1,0 +1,96 @@
+JAVA와 연결된 DB들은 모두 하나의 interface를 implements함 => 동일한 메소드명을 가짐
+그게 항상 가져오던 ojdbc14 파일
+
+Tomcat과 같은 프로그램을 깔면 컴퓨터를 웹서버로 만들어 줌
+주소를 등록하면 아파치가 캐치를 해주고, 이용자가 파일을 찾으면 연결시켜주고 일정 시간이 지나면 연결을 끊어줌
+주소를 파일 형식으로 넘길 수도 있는데, 이 때 확장자명은 html 또는 htm만 가능.
+다만 다른 언어와 연동시키는 프로그램을 깔 경우 다른 언어 사용 가능.
+
+
+- JDBC
+
+1단계 : 사용할 클래스 올리기
+Class.forName("oracle.jdbc.driver.OracleDriver");
+
+2단계 : DB에 연결
+String url="~~";
+Connection conn = DriverManager.getConnection(url, "id", "pw");
+
+3단계 : Query 준비
+PreparedStatement 객체는 쿼리 실행 및 실행 전에 해야 할 일에 대한 메소드를 가지고있다.
+String sql = "select ~~~ ";
+PreparedStatement stmt = conn.prepareStatement("sql");
+
+4단계 : Query에 들어갈 변수들을 세팅
+String sql = " ~~ where id=?";
+?에 대한 세팅 작업
+stmt.setInt(1, 100);
+1번째 물음표에 100을 넣는다
+
+5단계 : query 실행 및 결과값 획득
+select 문은 stmt.executeQuery()이고
+insert, update, delete문은 stmt.excuteUpdate()를 써야 함
+리턴타입이 몇개의 쿼리가 실행됐는지의 카운트 수로
+int count = stmt.executeUpdate(); 를 넣음
+
+ResultSet rs = stmt.executeQuery();
+
+6단계 : 받아온 결과값을 처리
+while(rs.next()){
+	
+}
+
+7단계 : 사용한 리소스를 닫는다.
+순서는 최근에 연 것 부터 먼저 닫기.
+rs.close();
+stmt.close();
+conn.close();
+
+- VO
+vo는 사용되는 db의 변수들을 일괄적으로 저장해놓은 객체.
+변수는 private으로 설정이 되고, 변수를 지정하거나 가져오기 위해 getter, setter 메소드를 구현함.
+정상 작동 여부를 확인하기 위해 toString메소드를 오버라이드 함.
+
+만일 두 개 이상의 vo에서 공통적으로 사용해야하는 변수가 있다면 commonVO를 만들어 각 vo에서 상속받아 사용.
+
+-DAO
+DB와 맞닿아있는 구현을 위한 객체.
+요청하는 조건에 맞는 데이터를 db에서 받아오고, vo에 담아 넘겨주는 역할을 한다.
+
+servlet에서 jsp에서 필요한 처리를 담당하고, DAO에서는 servlet에서 필요한 db연동 역할을 담당.
+기능별로 메소드를 구현하고, 각 메소드별로 리턴값이나 매개변수가 달라지는 것에 주의.
+
+Connection이나 close와 같이 공통적으로 사용되는 구현은 새로운 객체를 통해 처리하는 것이 편리함.
+Connection, PreparedStatement, ResultSet의 경우 대부분 메소드에서 사용되므로 클래스차원에 전역으로 선언 후 메소드 내에서 초기화.
+
+- Servlet
+
+servelt과 servlet 사이에서 데이터의 전달은 request와 response를 통해 이루어짐.
+한 페이지에서 다른 페이지로 로그인 정보가 VO로 넘어가면 다음 페이지에서 VO를 통해 아이디, 이름 등을 확인
+만일 해당 servlet에서 사용한 변수를 그대로 넘겨주고 싶다면 request의 Dispatcher 메소드를 이용해 forward 시키면 됨.
+(예 : 로그인 후 게시판에 글쓰기 할 경우 이름 또는 아이디 자동 입력)
+
+하지만 모든 페이지에 forward를 통해 id, 이름을 넘겨주는 것은 번거롭기 때문에 HttpSession을 사용함.
+Session은 한 브라우저 안에서 전부 사용가능한 저장소.
+Session에 데이터를 저장할 때 Object형으로 캐스팅해 저장을 하고, 데이터의 이름을 설정 가능.
+따라서 로그인 시 Session에 아이디와 이름을 저장하면 로그아웃 전까지 어디서든 이름 및 아이디 정보를 가져올 수 있음.
+
+servlet에서는 주로 doGet 메소드를 구현시키고, doPost 메소드에서는 doGet 메소드를 호출함.
+
+servlet을 호출하는 방법 두 가지: web.xml에 url을 설정해 호출, 어노테이션을 지정해 호출.
+web.xml에 url 지정 시 class 작성 후 ctrl키를 통해 확인하는 것과 url값 앞에 /붙이는 것 잊지말 것.
+
+
+- JSP
+
+jsp는 html언어 기반이지만 <% %> 기호안에서는 자바 언어를 사용 가능함.
+
+form action 명령을 통해 현재 jsp에서 선언한 변수를 받아 사용할 수 있는 다음 경로를 설정 가능함.
+만일 드러나지 않는 변수를 넘기고 싶다면 type을 hidden으로 설정.
+다음 경로는 어떤 형태의 페이지(?)도 가능. 예를들어 servlet도 가능하고, jsp도 가능함.
+주로 jsp로 페이지를 구현하고 servlet으로 명령 처리를 하므로 servlet으로 보냄.
+
+a href 명령을 통해서는 링크를 구현할 수 있음.
+여기서는 ?뒤에 조건을 걸어줄 수 있음. 예를들어 getBoard 에서 seq변수값이 3인 글로 가고싶으면 getBoard?seq=3 으로 쓰면 됨
+
+print기능은 바로 글을 쓰거나, 자바 언어 변수의 경우 <%=변수%>로 쓰면 됨.
